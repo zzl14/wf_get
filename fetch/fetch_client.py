@@ -3,7 +3,6 @@ from scapy.all import *
 import time
 import datetime
 #from  .sql_test import *
-from sqlalchemy import Sequence
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String
@@ -25,48 +24,47 @@ class client(Base):
 	Verdor=Column(String)
 	#ssid = Column(String)	
 
-
-def flush_data(time,mac,now):
-	session = Session_client()
-	last_time=session.query(client.Obstime).filter(client.mac==mac)
-	session.close()
-	#print(mac,now,last_time[-1:],'\n'*3)
-	if last_time[-1:]==[]:
-		return True
-	#print(now.timestamp()-last_time[-1:][0][0].timestamp(),int(time))
-	if now.timestamp()-last_time[-1:][0][0].timestamp()>=int(time):
-		return True
-	else:
-		return False
+class fetch():
+	def flush_data(self,time,mac,now):
+		session = Session_client()
+		last_time=session.query(client.Obstime).filter(client.mac==mac)
+		session.close()
+		if last_time[-1:]==[]:
+			return True
+		#print(now.timestamp()-last_time[-1:][0][0].timestamp(),int(time))
+		if (now.timestamp()-last_time[-1:][0][0].timestamp())>=int(time):
+			#print(now.timestamp()-last_time[-1:][0][0].timestamp(),int(time))
+			return True
+		else:
+			return False
 	
-
 	
+	def get_next_id(self):
+		session = Session_client()
+		id_now=session.query(client.id).all()
+		session.close()
+		if 	id_now==[]:
+			id_next=0
+		else:
+			id_next=id_now[len(id_now)-1][0]+1
+		return  id_next
 
-def get_next_id():
-	session = Session_client()
-	id_now=session.query(client.id).all()
-	session.close()
-	if 	id_now==[]:
-		id_next=0
-	else:
-		id_next=id_now[len(id_now)-1][0]+1
-	return  id_next
-
-def proc_packet(p):
-	if not p.haslayer(Dot11ProbeReq):
-		return 
-	if p[Dot11Elt].info !=None:
-		try:
-			ssid = p[Dot11Elt].info.decode('utf-8')
-		except:
-			ssid="none"
-	mac = p.addr2
-	Obstime = datetime.datetime.fromtimestamp(int(p.time))
-	Type=p.type
-	Subtype=p.subtype
-	Rssi=p.dBm_AntSignal
-	Verdor=mac[0:8]
-	return [ssid,mac,Obstime,Type,Subtype,Rssi,Verdor]
+	def proc_packet(self,p):
+		if not p.haslayer(Dot11ProbeReq):
+			return 
+		if p[Dot11Elt].info !=None:
+			try:
+				ssid = p[Dot11Elt].info.decode('utf-8')
+			except:
+				ssid="none"
+		mac = p.addr2
+		Obstime = datetime.datetime.fromtimestamp(int(p.time))
+		Type=p.type
+		Subtype=p.subtype
+		Rssi=p.dBm_AntSignal
+		Verdor=mac[0:8]
+		#return [ssid,mac,Obstime,Type,Subtype,Rssi,Verdor]
+		return {"ssid":ssid,"mac":mac,"Obstime":Obstime,"Type":Type,"Subtype":Subtype,"Rssi":Rssi,"Verdor":Verdor}
 '''
 def get_data(p):
 	if not p.haslayer(Dot11ProbeReq):
